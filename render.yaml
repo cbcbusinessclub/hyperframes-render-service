@@ -1,0 +1,25 @@
+# Render.com Blueprint — HyperFrames Render Service
+# Deploy: New + → Blueprint → point at this repo, or create a Web Service
+# manually with runtime "Docker" and the settings below.
+#
+# NOTA: el renderizado usa Chrome headless + FFmpeg y es intensivo en CPU/RAM.
+# El plan "starter" (512 MB) se queda corto: usa "standard" (2 GB) o superior.
+
+services:
+  - type: web
+    name: hyperframes-render
+    runtime: docker
+    plan: standard
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: API_KEY
+        generateValue: true      # Render genera una clave; cámbiala si quieres
+      - key: RENDER_CONCURRENCY
+        value: "1"               # súbelo solo si subes de plan
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: videos
+      mountPath: /data
+      sizeGB: 10

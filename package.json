@@ -1,0 +1,17 @@
+{
+  "name": "hyperframes-render-service",
+  "version": "1.0.0",
+  "description": "HyperFrames as a rendering service: HTTP API that turns HTML compositions or templates into MP4 videos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "gsap": "^3.15.0",
+    "hyperframes": "^0.7.108"
+  }
+}

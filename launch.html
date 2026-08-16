@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="./gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px;
+        overflow: hidden; background: #000;
+        font-family: "Inter", sans-serif;
+      }
+      .mono { font-family: "JetBrains Mono", monospace; }
+      #bg {
+        position: absolute; inset: 0;
+        background: radial-gradient(1200px 800px at 30% 20%, #1b2340 0%, #0b0f1e 55%, #06080f 100%);
+      }
+      #bg-glow {
+        position: absolute; left: 50%; top: 50%; width: 1400px; height: 1400px;
+        margin-left: -700px; margin-top: -700px; border-radius: 50%;
+        background: radial-gradient(circle, {{{ACCENT}}}38 0%, transparent 60%);
+      }
+      #grid {
+        position: absolute; inset: 0; opacity: 0.35;
+        background-image:
+          linear-gradient(rgba(148,163,184,0.07) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148,163,184,0.07) 1px, transparent 1px);
+        background-size: 80px 80px;
+      }
+      #s1 { position: absolute; inset: 0; }
+      #s1-inner {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 34px;
+      }
+      #s1-kicker { display: block; color: {{{ACCENT}}}; letter-spacing: 10px; font-size: 26px; font-weight: 600; filter: brightness(1.35); }
+      #s1-title { display: block; color: #f5f7ff; font-size: 150px; font-weight: 800; letter-spacing: -3px; line-height: 1; text-align: center; max-width: 1700px; }
+      #s1-tag { display: block; color: #b8c0d8; font-size: 42px; font-weight: 400; text-align: center; max-width: 1500px; }
+      #s2 { position: absolute; inset: 0; }
+      #s2-inner {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 46px;
+      }
+      #s2-head { display: block; color: #f5f7ff; font-size: 84px; font-weight: 800; letter-spacing: -2px; text-align: center; max-width: 1700px; }
+      #s2-chips { display: flex; gap: 28px; }
+      .chip {
+        display: block; padding: 22px 44px; border-radius: 60px;
+        border: 1px solid #2c3554; background: rgba(23,29,52,0.85);
+        color: #dbe1f5; font-size: 34px; font-weight: 600;
+      }
+      .chip i { color: {{{ACCENT}}}; font-style: normal; filter: brightness(1.35); }
+      #s2-cta {
+        display: block; margin-top: 10px; padding: 26px 56px; border-radius: 16px;
+        background: #10162b; border: 1px solid #313c63;
+        color: #e2e6f5; font-size: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="launch"
+      data-start="0"
+      data-duration="8"
+      data-width="1920"
+      data-height="1080"
+      style="position: relative; width: 1920px; height: 1080px; overflow: hidden;"
+    >
+      <div id="bg" class="clip" data-start="0" data-duration="8" data-track-index="0">
+        <div id="bg-glow"></div>
+        <div id="grid"></div>
+      </div>
+
+      <div id="s1" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <div id="s1-inner">
+          <span id="s1-kicker">{{KICKER}}</span>
+          <div id="s1-title">{{TITLE}}</div>
+          <span id="s1-tag">{{TAGLINE}}</span>
+        </div>
+      </div>
+
+      <div id="s2" class="clip" data-start="4" data-duration="4" data-track-index="1">
+        <div id="s2-inner">
+          <span id="s2-head">{{HEADLINE}}</span>
+          <div id="s2-chips">
+            <span class="chip" id="ch1"><i>●</i> {{CHIP1}}</span>
+            <span class="chip" id="ch2"><i>●</i> {{CHIP2}}</span>
+            <span class="chip" id="ch3"><i>●</i> {{CHIP3}}</span>
+          </div>
+          <span id="s2-cta" class="mono">{{CTA}}</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo("#bg-glow", { x: -120, y: -60, scale: 1 }, { x: 120, y: 60, scale: 1.12, duration: 8, ease: "none" }, 0);
+
+      /* scene 1 */
+      tl.fromTo("#s1-kicker", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.2);
+      tl.fromTo("#s1-title", { opacity: 0, y: 90 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.5);
+      tl.fromTo("#s1-tag", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, 1.1);
+      tl.fromTo("#s1-inner", { opacity: 1, scale: 1 }, { opacity: 0, scale: 0.96, duration: 0.45, ease: "power2.in" }, 3.5);
+      tl.set("#s1-inner", { opacity: 0 }, 4.0);
+
+      /* scene 2 */
+      tl.fromTo("#s2-head", { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 4.1);
+      tl.fromTo("#ch1", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.6);
+      tl.fromTo("#ch2", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.75);
+      tl.fromTo("#ch3", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.9);
+      tl.fromTo("#s2-cta", { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, 5.4);
+      tl.fromTo("#s2-cta", { scale: 1 }, { scale: 1.03, duration: 0.6, ease: "sine.inOut", repeat: 1, yoyo: true }, 6.1);
+      tl.fromTo("#s2-inner", { opacity: 1 }, { opacity: 0, duration: 0.5, ease: "power2.in" }, 7.5);
+
+      window.__timelines["launch"] = tl;
+    </script>
+  </body>
+</html>
