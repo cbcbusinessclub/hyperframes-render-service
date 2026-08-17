@@ -172,36 +172,72 @@ app.use(express.json({ limit: MAX_BODY }));
 
 app.get("/health", (_req, res) => res.json({ ok: true, queue: queue.length, running }));
 
+/* ---- public landing page + video downloads (no secrets exposed) ---- */
+
+app.get("/", (_req, res) => {
+  const hasDemo = fs.existsSync(path.join(VIDEOS_DIR, "demo.mp4"));
+  res.type("html").send(`<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HyperFrames Render Service</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,sans-serif; background:#0b0f1e; color:#e2e6f5; line-height:1.6; }
+  .wrap { max-width:880px; margin:0 auto; padding:48px 24px 80px; }
+  .badge { display:inline-block; padding:4px 14px; border-radius:20px; background:rgba(99,102,241,.15); border:1px solid #313c63; color:#8b93ff; font-size:13px; font-weight:600; letter-spacing:2px; }
+  h1 { font-size:44px; font-weight:800; letter-spacing:-1px; margin:18px 0 8px; }
+  .sub { color:#9aa3b8; font-size:18px; margin-bottom:36px; }
+  .ok { color:#86efac; }
+  h2 { font-size:22px; margin:42px 0 14px; letter-spacing:-.5px; }
+  video { width:100%; border-radius:14px; border:1px solid #232c47; box-shadow:0 30px 70px rgba(0,0,0,.5); }
+  pre { background:#0d1220; border:1px solid #232c47; border-radius:12px; padding:18px 20px; overflow-x:auto; font-size:13.5px; line-height:1.7; color:#c7cee6; }
+  code { color:#7dd3fc; }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  td, th { text-align:left; padding:10px 12px; border-bottom:1px solid #1c2440; }
+  th { color:#8b93ff; font-size:13px; letter-spacing:1px; text-transform:uppercase; }
+  .muted { color:#9aa3b8; }
+  a { color:#8b93ff; }
+</style></head><body><div class="wrap">
+<span class="badge">HYPERFRAMES · RENDER SERVICE</span>
+<h1>V&iacute;deo hecho con c&oacute;digo</h1>
+<p class="sub">API HTTP que convierte composiciones HTML en v&iacute;deos MP4 deterministas.
+Estado: <b class="ok">&#9679; operativo</b> &middot; Chrome headless + FFmpeg &middot; plantillas: ${listTemplates().join(", ") || "&mdash;"}</p>
+${hasDemo
+  ? `<h2>Demo generada por este servidor</h2>
+<video controls muted playsinline preload="metadata" src="/videos/demo.mp4"></video>
+<p class="muted" style="margin-top:10px">Este v&iacute;deo se gener&oacute; autom&aacute;ticamente aqu&iacute; con la plantilla <code>launch</code>.</p>`
+  : `<h2>Demo</h2><p class="muted">El v&iacute;deo de demostraci&oacute;n se est&aacute; generando (~1 min tras el arranque)&hellip; recarga en un momento.</p>`}
+<h2>Endpoints</h2>
+<table>
+<tr><th>M&eacute;todo</th><th>Ruta</th><th>Descripci&oacute;n</th><th>Auth</th></tr>
+<tr><td>POST</td><td><code>/render</code></td><td>Genera un v&iacute;deo (plantilla + params, o HTML propio)</td><td>x-api-key</td></tr>
+<tr><td>GET</td><td><code>/jobs/:id</code></td><td>Estado del job</td><td>x-api-key</td></tr>
+<tr><td>GET</td><td><code>/videos/:f.mp4</code></td><td>Descarga del MP4</td><td class="muted">p&uacute;blico</td></tr>
+<tr><td>GET</td><td><code>/health</code></td><td>Liveness</td><td class="muted">p&uacute;blico</td></tr>
+</table>
+<h2>Ejemplo</h2>
+<pre>curl -X POST ${"https://hyperframes-render.onrender.com"}/render \\
+  -H "content-type: application/json" -H "x-api-key: TU_CLAVE" \\
+  -d '{"template":"launch","sync":true,"params":{
+    "KICKER":"NUEVO LANZAMIENTO","TITLE":"Tu producto",
+    "TAGLINE":"Tu mensaje aquí","HEADLINE":"Disponible hoy",
+    "CHIP1":"Rápido","CHIP2":"Determinista","CHIP3":"Open source",
+    "CTA":"tu-dominio.com","ACCENT":"#6366f1"}}'</pre>
+<p class="muted" style="margin-top:28px">Basado en <a href="https://github.com/heygen-com/hyperframes">HyperFrames</a> (Apache 2.0) &middot;
+c&oacute;digo del servicio en <a href="https://github.com/cbcbusinessclub/hyperframes-render-service">GitHub</a></p>
+</div></body></html>`);
+});
+
+app.use("/videos", express.static(VIDEOS_DIR, { maxAge: "365d", immutable: true }));
+
+/* ---- everything below requires the API key ---- */
+
 app.use((req, res, next) => {
   if (!API_KEY) return next();
   const key = req.get("x-api-key") || req.query.key;
   if (key === API_KEY) return next();
   res.status(401).json({ error: "unauthorized: missing or wrong x-api-key" });
-});
-
-app.get("/", (_req, res) => {
-  res.type("html").send(`<!doctype html><meta charset="utf-8">
-<title>HyperFrames Render Service</title>
-<body style="font-family:system-ui;max-width:760px;margin:40px auto;line-height:1.5">
-<h1>HyperFrames Render Service</h1>
-<p>Convierte composiciones HTML de HyperFrames en vídeos MP4 vía HTTP.</p>
-<h3>Endpoints</h3>
-<pre>
-POST /render          { "template": "launch", "params": { ... }, "sync": true }
-                      o { "html": "&lt;composición HyperFrames completa&gt;" }
-GET  /jobs/:id        estado del job
-GET  /videos/:f.mp4   descarga del MP4
-GET  /health          liveness
-</pre>
-<h3>Plantillas disponibles</h3>
-<pre>${listTemplates().join("\n") || "(ninguna)"}</pre>
-<h3>Ejemplo</h3>
-<pre>curl -X POST $HOST/render -H "content-type: application/json" -H "x-api-key: $KEY" \\
-  -d '{"template":"launch","sync":true,"params":{
-    "KICKER":"NUEVO LANZAMIENTO","TITLE":"AgentHub","TAGLINE":"Tu empresa, operada por agentes IA",
-    "CHIP1":"63 agentes","CHIP2":"11 departamentos","CHIP3":"8 workflows",
-    "CTA":"agenthub.ai","ACCENT":"#6366f1"}}'</pre>
-</body>`);
 });
 
 app.post("/render", async (req, res) => {
@@ -246,9 +282,45 @@ app.get("/jobs/:id", (req, res) => {
   res.json({ id: req.params.id, ...job });
 });
 
-app.use("/videos", express.static(VIDEOS_DIR, { maxAge: "365d", immutable: true }));
+/* ---- self-generating demo video for the landing page ---- */
+
+async function bootstrapDemo() {
+  const demoPath = path.join(VIDEOS_DIR, "demo.mp4");
+  if (fs.existsSync(demoPath)) return;
+  try {
+    const composition = buildFromTemplate("launch", {
+      KICKER: "SERVICIO DE RENDERIZADO",
+      TITLE: "HyperFrames API",
+      TAGLINE: "Manda un JSON. Recibe un vídeo.",
+      HEADLINE: "Así funciona",
+      CHIP1: "HTTP → MP4",
+      CHIP2: "1080p · 30fps",
+      CHIP3: "Determinista",
+      CTA: "POST /render",
+      ACCENT: "#6366f1",
+    });
+    const id = "demo-" + newJobId();
+    const dir = path.join(JOBS_DIR, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "index.html"), composition, "utf8");
+    fs.writeFileSync(path.join(dir, "meta.json"), JSON.stringify({ id, name: id }), "utf8");
+    if (GSAP_PATH) fs.copyFileSync(GSAP_PATH, path.join(dir, "gsap.min.js"));
+    jobs.set(id, { status: "queued", createdAt: new Date().toISOString() });
+    enqueue(id);
+    const job = await waitForJob(id, RENDER_TIMEOUT_MS);
+    if (job && job.status === "done") {
+      fs.copyFileSync(path.join(VIDEOS_DIR, `${id}.mp4`), demoPath);
+      console.log("[hyperframes-render-service] demo video ready at /videos/demo.mp4");
+    } else {
+      console.log("[hyperframes-render-service] demo bootstrap failed:", job && job.error);
+    }
+  } catch (e) {
+    console.log("[hyperframes-render-service] demo bootstrap error:", e.message);
+  }
+}
 
 app.listen(PORT, () => {
   console.log(`[hyperframes-render-service] listening on :${PORT}`);
   console.log(`[hyperframes-render-service] cli=${CLI} data=${DATA_DIR} concurrency=${CONCURRENCY} auth=${API_KEY ? "on" : "OFF"}`);
+  setTimeout(bootstrapDemo, 3000);
 });
